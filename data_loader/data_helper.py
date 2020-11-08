@@ -1,12 +1,15 @@
 import numpy as np
 import os
 import pickle
+import networkx as nx
+from glob import glob
+from os.path import basename
+import copy
 
 
 NUM_LABELS = {'ENZYMES': 3, 'COLLAB': 0, 'IMDBBINARY': 0, 'IMDBMULTI': 0, 'MUTAG': 7, 'NCI1': 37, 'NCI109': 38,
               'PROTEINS': 3, 'PTC': 22, 'DD': 89}
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def load_dataset(ds_name):
     """
@@ -16,6 +19,10 @@ def load_dataset(ds_name):
             the graphs array contains in each entry a ndarray represent adjacency matrix of a graph of shape (num_vertex, num_vertex, num_vertex_labels)
             the labels array in index i represent the class of graphs[i]
     """
+    
+    if(ds_name in ["AIDS700nef", "LINUX"]):
+        return load_dataset_SimGNN(ds_name)
+    
     directory = BASE_DIR + "/data/benchmark_graphs/{0}/{0}.txt".format(ds_name)
     graphs = []
     labels = []
@@ -37,7 +44,90 @@ def load_dataset(ds_name):
     graphs = np.array(graphs)
     for i in range(graphs.shape[0]):
         graphs[i] = np.transpose(graphs[i], [2,0,1])
+        
     return graphs, np.array(labels)
+    
+def load_dataset_SimGNN(ds_name):
+    """
+    :return: graphs numpy array of shape (num_of_graphs)
+            ged numpy matrix of shape (num_of_graphs, num_of_graphs)
+    """
+    directory = BASE_DIR + "/data/SimGNN_graphs/{}".format(ds_name)
+    graphs = iterate_get_graphs(directory)
+    num_graphs = len(graphs)
+    
+    pickle_path = directory+"/geds.pickle"
+    if os.path.exists(pickle_path):
+        with open(pickle_path, 'rb') as f:
+            geds = pickle.load(f)
+    else:
+        geds = np.zeros((num_graphs,num_graphs))
+        for i in range(num_graphs):
+            for j in range(i):
+                geds[i,j] = next(nx.optimize_graph_edit_distance( graphs[i], graphs[j], node_subst_cost=is_diff, edge_subst_cost=is_diff ))
+                geds[j,i] = geds[i,j]
+            print("Calculating GEDs {}/{}".format(i,num_graphs))
+        with open(pickle_path, 'wb') as f:
+            pickle.dump(geds, f)
+    
+    # construct dict injectively mapping node attribute dicts -> integers
+    node_num_att = 0
+    node_att_map = {}
+    for graph in graphs:
+        nodes = list(graph.nodes.data())
+        for node in nodes:   # each node is (node, att_dict) tuple
+            att = copy.deepcopy(node[1])
+            del att['label']    # this is always unique to each node; we don't care about this
+            att = str(sorted(att.items()))   # can't hash a dict, so we use this instead
+            if att not in node_att_map:
+                node_att_map[att] = node_num_att
+                node_num_att += 1
+                
+    # convert graphs to numpy format
+    npgraphs = np.empty(len(graphs), dtype=object)
+    for i in range(len(graphs)):
+        npgraph = nx_to_np(graphs[i], node_att_map)
+        npgraph = np.transpose(npgraph, [1,2,0])
+        npgraph = normalize_graph(npgraph)
+        npgraph = np.transpose(npgraph, [2,0,1])
+        npgraphs[i] = npgraph
+    return npgraphs, geds
+    
+def iterate_get_graphs(dir):
+    graphs = []
+    for file in glob(dir + '/*.gexf'):
+        gid = int(basename(file).split('.')[0])
+        g = nx.read_gexf(file)
+        # g.graph['gid'] = gid
+        graphs.append(g)
+        if not nx.is_connected(g):
+            raise RuntimeError('{} not connected'.format(gid))
+    return graphs
+    
+def is_diff(att1,att2):
+    """
+    Cost = 1 if any attribute other than "label" is different, 0 otherwise
+    """
+    return all(att1[key] == att2[key] or key == "label" for key in att1)
+    
+def nx_to_np(G, node_att_map):
+    n = G.number_of_nodes()
+    nodes = list(G.nodes.data())
+    node_num_att = len(node_att_map)
+            
+    # TODO handle edge attributes (PPGN wasn't built for edge attributes)
+    
+    # populate node attributes
+    npG = np.zeros((node_num_att+1, n, n))
+    npG[0,:,:] = nx.to_numpy_matrix(G)
+    for i in range(n):
+        att = copy.deepcopy(nodes[i][1])
+        del att['label']    # this is always unique to each node; we don't care about this
+        att = str(sorted(att.items()))   # can't hash a dict, so we use this instead
+        att = node_att_map[att]
+        npG[1+att,i,i] = 1
+    
+    return npG
 
 
 def load_qm9(target_param):
