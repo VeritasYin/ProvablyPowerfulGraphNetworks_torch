@@ -44,7 +44,12 @@ class ModelWrapper(object):
         :return: tuple of (loss tensor, dists numpy array) for QM9
                           (loss tensor, number of correct predictions) for classification graphs
         """
-        if self.config.dataset_name == 'QM9':
+        if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
+            differences = (scores-labels).abs()
+            loss = differences.sum()
+            dists = differences.detach().cpu().numpy()
+            return loss, dists
+        elif self.config.dataset_name == 'QM9':
             differences = (scores-labels).abs().sum(dim=0)
             loss = differences.sum()
             dists = differences.detach().cpu().numpy()

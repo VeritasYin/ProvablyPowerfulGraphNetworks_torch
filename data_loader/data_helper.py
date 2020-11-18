@@ -20,9 +20,6 @@ def load_dataset(ds_name):
             the labels array in index i represent the class of graphs[i]
     """
     
-    if(ds_name in ["AIDS700nef", "LINUX"]):
-        return load_dataset_SimGNN(ds_name)
-    
     directory = BASE_DIR + "/data/benchmark_graphs/{0}/{0}.txt".format(ds_name)
     graphs = []
     labels = []
@@ -118,14 +115,18 @@ def nx_to_np(G, node_att_map):
     # TODO handle edge attributes (PPGN wasn't built for edge attributes)
     
     # populate node attributes
-    npG = np.zeros((node_num_att+1, n, n))
-    npG[0,:,:] = nx.to_numpy_matrix(G)
-    for i in range(n):
-        att = copy.deepcopy(nodes[i][1])
-        del att['label']    # this is always unique to each node; we don't care about this
-        att = str(sorted(att.items()))   # can't hash a dict, so we use this instead
-        att = node_att_map[att]
-        npG[1+att,i,i] = 1
+    if node_num_att == 1: # one label is no label
+        npG = np.zeros((1, n, n))
+        npG[0,:,:] = nx.to_numpy_matrix(G)
+    else:
+        npG = np.zeros((node_num_att+1, n, n))
+        npG[0,:,:] = nx.to_numpy_matrix(G)
+        for i in range(n):
+            att = copy.deepcopy(nodes[i][1])
+            del att['label']    # this is always unique to each node; we don't care about this
+            att = str(sorted(att.items()))   # can't hash a dict, so we use this instead
+            att = node_att_map[att]
+            npG[1+att,i,i] = 1
     
     return npG
 

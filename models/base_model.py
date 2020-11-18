@@ -57,4 +57,16 @@ class BaseModel(nn.Module):
                 x = fc(x)
             scores = x
 
+        # If SimGNN, take pairwise differences
+        # Afterwards scores has shape (n,n)
+        if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
+            pdist = nn.PairwiseDistance(p=2)
+            n = scores.shape[0]
+            d = scores.shape[1]
+            input1 = scores.expand(n,n,d)
+            input2 = torch.transpose(input1,0,1)
+            input1 = torch.reshape(input1, (n*n,d))
+            input2 = torch.reshape(input2, (n*n,d))
+            scores = torch.reshape(pdist(input1, input2), (n,n))
+
         return scores

@@ -8,6 +8,7 @@ class DataGenerator:
         self.config = config
         # load data here
         self.batch_size = self.config.hyperparams.batch_size
+        self.is_SimGNN = self.config.dataset_name in ['AIDS700nef', 'LINUX']
         self.is_qm9 = self.config.dataset_name == 'QM9'
         self.labels_dtype = torch.float32 if self.is_qm9 else torch.long
 
@@ -15,12 +16,26 @@ class DataGenerator:
 
     # load the specified dataset in the config to the data_generator instance
     def load_data(self):
-        if self.is_qm9:
+        if self.is_SimGNN:
+            self.load_SimGNN_data()
+        elif self.is_qm9:
             self.load_qm9_data()
         else:
             self.load_data_benchmark()
 
         self.split_val_test_to_batches()
+
+    def load_SimGNN_data(self):
+        train_graphs, train_labels, val_graphs, val_labels, test_graphs, test_labels = \
+            helper.load_dataset_SimGNN(self.config.dataset_name)
+
+        self.train_graphs, self.train_labels = train_graphs, train_labels
+        self.val_graphs, self.val_labels = val_graphs, val_labels
+        self.test_graphs, self.test_labels = test_graphs, test_labels
+
+        self.train_size = len(self.train_graphs)
+        self.val_size = len(self.val_graphs)
+        self.test_size = len(self.test_graphs)
 
     # load QM9 data set
     def load_qm9_data(self):
