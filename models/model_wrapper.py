@@ -45,7 +45,10 @@ class ModelWrapper(object):
                           (loss tensor, number of correct predictions) for classification graphs
         """
         if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
-            differences = (scores-labels).abs()
+            print("scores, labels")
+            print(scores.shape)
+            print(labels.shape)
+            differences = (scores-labels.float()).abs()
             loss = differences.sum()
             dists = differences.detach().cpu().numpy()
             return loss, dists

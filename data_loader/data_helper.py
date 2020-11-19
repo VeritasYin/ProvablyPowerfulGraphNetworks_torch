@@ -236,7 +236,10 @@ def group_same_size(graphs, labels):
     sizes = list(map(lambda t: t.shape[1], graphs))
     indexes = np.argsort(sizes)
     graphs = graphs[indexes]
-    labels = labels[indexes]
+    if is_ged(labels):
+        labels = labels[indexes][:,indexes]
+    else:
+        labels = labels[indexes]
     r_graphs = []
     r_labels = []
     one_size = []
@@ -247,13 +250,19 @@ def group_same_size(graphs, labels):
             one_size.append(np.expand_dims(graphs[i], axis=0))
         else:
             r_graphs.append(np.concatenate(one_size, axis=0))
-            r_labels.append(np.array(labels[start:i]))
+            if is_ged(labels):
+                r_labels.append(np.array(labels[start:i][:,start:i]))
+            else:
+                r_labels.append(np.array(labels[start:i]))
             start = i
             one_size = []
             size = graphs[i].shape[1]
             one_size.append(np.expand_dims(graphs[i], axis=0))
     r_graphs.append(np.concatenate(one_size, axis=0))
-    r_labels.append(np.array(labels[start:]))
+    if is_ged(labels):
+        r_labels.append(np.array(labels[start:][:,start:]))
+    else:
+        r_labels.append(np.array(labels[start:]))
     return r_graphs, r_labels
 
 
@@ -281,7 +290,15 @@ def split_to_batches(graphs, labels, size):
     r_labels = []
     for k in range(len(graphs)):
         r_graphs = r_graphs + np.split(graphs[k], [j for j in range(size, graphs[k].shape[0], size)])
-        r_labels = r_labels + np.split(labels[k], [j for j in range(size, labels[k].shape[0], size)])
+        if is_ged(labels[k]):
+            split = []
+            for j in range( len(labels) // size ):
+                split = split + [ labels[k] [(j-1)*size : j*size] [:, (j-1)*size : j*size] ]
+            if labels[k].shape[0] % size != 0:
+                split = split + [ labels[k] [(labels[k].shape[0]//size)*size:] [:, (labels[k].shape[0]//size)*size:] ]
+            r_labels = r_labels + split
+        else:
+            r_labels = r_labels + np.split(labels[k], [j for j in range(size, labels[k].shape[0], size)])
 
     # Avoid bug for batch_size=1, where instead of creating numpy array of objects, we had numpy array of floats with
     # different sizes - could not reshape
@@ -295,7 +312,10 @@ def split_to_batches(graphs, labels, size):
 def shuffle(graphs, labels):
     shf = np.arange(labels.shape[0], dtype=np.int32)
     np.random.shuffle(shf)
-    return np.array(graphs)[shf], labels[shf]
+    if is_ged(labels):
+        return np.array(graphs)[shf], labels[shf][:,shf]
+    else:
+        return np.array(graphs)[shf], labels[shf]
 
 
 def normalize_graph(curr_graph):
@@ -312,6 +332,8 @@ def normalize_graph(curr_graph):
     labels= np.append(np.zeros(shape=(curr_graph.shape[0], curr_graph.shape[1], 1)), split[1], axis=2)
     return np.add(spred_adj, labels)
 
+def is_ged(labels):
+    return labels.shape == (labels.shape[0], labels.shape[0])
 
 if __name__ == '__main__':
     graphs, labels = load_dataset("MUTAG")

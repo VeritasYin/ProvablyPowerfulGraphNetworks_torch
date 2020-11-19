@@ -26,12 +26,11 @@ class DataGenerator:
         self.split_val_test_to_batches()
 
     def load_SimGNN_data(self):
-        train_graphs, train_labels, val_graphs, val_labels, test_graphs, test_labels = \
-            helper.load_dataset_SimGNN(self.config.dataset_name)
+        graphs, labels = helper.load_dataset_SimGNN(self.config.dataset_name)
 
-        self.train_graphs, self.train_labels = train_graphs, train_labels
-        self.val_graphs, self.val_labels = val_graphs, val_labels
-        self.test_graphs, self.test_labels = test_graphs, test_labels
+        idx = len(graphs)//5
+        self.test_graphs, self.val_graphs, self.train_graphs = graphs[:idx], graphs[idx:2*idx], graphs[2*idx:]
+        self.test_labels, self.val_labels, self.train_labels = labels[:idx,:idx], labels[idx:2*idx, idx:2*idx], labels[2*idx:, 2*idx:]
 
         self.train_size = len(self.train_graphs)
         self.val_size = len(self.val_graphs)
