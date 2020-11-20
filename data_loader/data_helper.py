@@ -292,8 +292,8 @@ def split_to_batches(graphs, labels, size):
         r_graphs = r_graphs + np.split(graphs[k], [j for j in range(size, graphs[k].shape[0], size)])
         if is_ged(labels[k]):
             split = []
-            for j in range( len(labels) // size ):
-                split = split + [ labels[k] [(j-1)*size : j*size] [:, (j-1)*size : j*size] ]
+            for j in range( labels[k].shape[0] // size ):
+                split = split + [ labels[k] [j*size : (j+1)*size] [:, j*size : (j+1)*size] ]
             if labels[k].shape[0] % size != 0:
                 split = split + [ labels[k] [(labels[k].shape[0]//size)*size:] [:, (labels[k].shape[0]//size)*size:] ]
             r_labels = r_labels + split

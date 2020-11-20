@@ -50,7 +50,7 @@ class ModelWrapper(object):
             print(labels.shape)
             differences = (scores-labels.float()).abs()
             loss = differences.sum()
-            dists = differences.detach().cpu().numpy()
+            dists = differences.sum() # Given comments lie; need to return sum of distances
             return loss, dists
         elif self.config.dataset_name == 'QM9':
             differences = (scores-labels).abs().sum(dim=0)
