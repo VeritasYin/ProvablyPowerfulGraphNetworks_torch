@@ -45,12 +45,9 @@ class ModelWrapper(object):
                           (loss tensor, number of correct predictions) for classification graphs
         """
         if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
-            print("scores, labels")
-            print(scores.shape)
-            print(labels.shape)
             differences = (scores-labels.float()).abs()
             loss = differences.sum()
-            dists = differences.sum() # Given comments lie; need to return sum of distances
+            dists = differences.detach().cpu().numpy().sum()
             return loss, dists
         elif self.config.dataset_name == 'QM9':
             differences = (scores-labels).abs().sum(dim=0)

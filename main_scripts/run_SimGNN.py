@@ -1,7 +1,7 @@
 import os
 
 datasets = ['LINUX']
-run_command = 'python main_scripts/main_SimGNN.py '
+run_command = 'python main_SimGNN.py '
 args1 = '--config=configs/SimGNN_config.json '
 args2 = '--dataset_name=%s'
 

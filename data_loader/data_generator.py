@@ -36,6 +36,8 @@ class DataGenerator:
         self.val_size = len(self.val_graphs)
         self.test_size = len(self.test_graphs)
 
+        self.labels_std = 1 # dummy value; do we actually want to standardize?
+
     # load QM9 data set
     def load_qm9_data(self):
         train_graphs, train_labels, val_graphs, val_labels, test_graphs, test_labels = \
@@ -111,7 +113,7 @@ class DataGenerator:
         self.num_iterations_val = len(graphs)
         self.val_graphs_batches, self.val_labels_batches = graphs, labels
 
-        if self.is_qm9:
+        if self.is_qm9 or self.is_SimGNN:
             # Benchmark graphs have no test sets
             graphs, labels = helper.group_same_size(self.test_graphs, self.test_labels)
             graphs, labels = helper.split_to_batches(graphs, labels, self.batch_size)

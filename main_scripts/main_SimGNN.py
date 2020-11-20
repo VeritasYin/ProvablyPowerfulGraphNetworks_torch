@@ -61,7 +61,7 @@ def main():
     # test model, restore best model
     test_dists, test_loss = trainer.test(load_best_model=True)
 
-    doc_utils.summary_qm9_results(config.summary_dir, test_dists, test_loss, trainer.best_epoch)
+    # doc_utils.summary_qm9_results(config.summary_dir, test_dists, test_loss, trainer.best_epoch)
 
 
 if __name__ == '__main__':
