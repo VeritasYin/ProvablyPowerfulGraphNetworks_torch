@@ -1,7 +1,7 @@
 import data_loader.data_helper as helper
 import utils.config
 import torch
-
+import numpy as np
 
 class DataGenerator:
     def __init__(self, config):
@@ -25,16 +25,28 @@ class DataGenerator:
 
         self.split_val_test_to_batches()
 
+    # because we compare every pair of graphs in each batch, the actual dataset size is a bit complicated
+    def __dataset_size_SimGNN(self, num_graphs):
+        per_full_batch = self.batch_size * (self.batch_size-1) # comparing graph to itself will always succeed
+        if num_graphs % self.batch_size == 0:
+            partial_batch = 0
+        else:
+            partial_batch = (num_graphs%self.batch_size) * ((num_graphs%self.batch_size) -1)
+        return (num_graphs//self.batch_size) * per_full_batch + partial_batch
+
     def load_SimGNN_data(self):
         graphs, labels = helper.load_dataset_SimGNN(self.config.dataset_name)
+
+        avg_ged = np.sum(labels) // (labels.shape[0]*(labels.shape[0]-1))
+        print("ged avg: {}".format(avg_ged))
 
         idx = len(graphs)//5
         self.test_graphs, self.val_graphs, self.train_graphs = graphs[:idx], graphs[idx:2*idx], graphs[2*idx:]
         self.test_labels, self.val_labels, self.train_labels = labels[:idx,:idx], labels[idx:2*idx, idx:2*idx], labels[2*idx:, 2*idx:]
 
-        self.train_size = len(self.train_graphs)
-        self.val_size = len(self.val_graphs)
-        self.test_size = len(self.test_graphs)
+        self.train_size = self.__dataset_size_SimGNN(len(self.train_graphs))
+        self.val_size = self.__dataset_size_SimGNN(len(self.val_graphs))
+        self.test_size = self.__dataset_size_SimGNN(len(self.test_graphs))
 
         self.labels_std = 1 # dummy value; do we actually want to standardize?
 
