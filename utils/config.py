@@ -3,7 +3,7 @@ from easydict import EasyDict
 import os
 import datetime
 
-GRAPH_REP_SIZE = 20 # number of features in graph representation for SimGNN task
+GRAPH_REP_SIZE = 200 # number of features in graph representation for SimGNN task
 
 #TODO Intelligently pick values fo SimGNN; currently these are guesses
 NUM_LABELS = {'COLLAB':0, 'IMDBBINARY':0, 'IMDBMULTI':0, 'MUTAG':7, 'NCI1':37, 'NCI109':38, 'PROTEINS':3, 'PTC':22, 'DD':89, 'QM9': 18, 'AIDS700nef':29, 'LINUX':0}

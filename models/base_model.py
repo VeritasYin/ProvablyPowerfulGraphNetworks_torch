@@ -12,6 +12,7 @@ class BaseModel(nn.Module):
         super().__init__()
 
         self.config = config
+        self.is_SimGNN = config.dataset_name in ['LINUX', 'AIDS700nef']
         use_new_suffix = config.architecture.new_suffix  # True or False
         block_features = config.architecture.block_features  # List of number of features in each regular block
         original_features_num = config.node_labels + 1  # Number of features of the input
@@ -37,6 +38,13 @@ class BaseModel(nn.Module):
             self.fc_layers.append(modules.FullyConnected(2*block_features[-1], 512))
             self.fc_layers.append(modules.FullyConnected(512, 256))
             self.fc_layers.append(modules.FullyConnected(256, self.config.num_classes, activation_fn=None))
+            
+        # SimGNN layers (graph rep -> ged)
+        if self.is_SimGNN:
+            self.SimGNN_layers = nn.ModuleList()
+            self.SimGNN_layers.append(modules.FullyConnected(self.config.num_classes*2, 512)) 
+            self.SimGNN_layers.append(modules.FullyConnected(512, 256)) 
+            self.SimGNN_layers.append(modules.FullyConnected(256, 1, activation_fn=None)) 
 
     def forward(self, input):
         x = input
@@ -57,16 +65,16 @@ class BaseModel(nn.Module):
                 x = fc(x)
             scores = x
 
-        # If SimGNN, take pairwise differences
+        # If SimGNN, pair up and apply anothe 3-layer MLP
         # Afterwards scores has shape (n,n)
-        if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
-            pdist = nn.PairwiseDistance(p=2)
+        if self.is_SimGNN:
             n = scores.shape[0]
             d = scores.shape[1]
             input1 = scores.expand(n,n,d)
             input2 = torch.transpose(input1,0,1)
-            input1 = torch.reshape(input1, (n*n,d))
-            input2 = torch.reshape(input2, (n*n,d))
-            scores = torch.reshape(pdist(input1, input2), (n,n))
+            x = torch.reshape( torch.cat((input1,input2), 2) , (n*n,2*d))
+            for fc in self.SimGNN_layers:
+                x = fc(x)
+            scores = torch.reshape(x, (n,n))
 
         return scores
