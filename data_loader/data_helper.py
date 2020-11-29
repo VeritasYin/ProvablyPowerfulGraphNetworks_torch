@@ -5,6 +5,7 @@ import networkx as nx
 from glob import glob
 from os.path import basename
 import copy
+from tqdm import tqdm
 
 
 NUM_LABELS = {'ENZYMES': 3, 'COLLAB': 0, 'IMDBBINARY': 0, 'IMDBMULTI': 0, 'MUTAG': 7, 'NCI1': 37, 'NCI109': 38,
@@ -59,11 +60,13 @@ def load_dataset_SimGNN(ds_name):
             geds = pickle.load(f)
     else:
         geds = np.zeros((num_graphs,num_graphs))
-        for i in range(num_graphs):
+        print("Calculating GEDs ...")
+        for i in tqdm(range(num_graphs)):
             for j in range(i):
                 geds[i,j] = next(nx.optimize_graph_edit_distance( graphs[i], graphs[j], node_subst_cost=is_diff, edge_subst_cost=is_diff ))
-                geds[j,i] = geds[i,j]
-            print("Calculating GEDs {}/{}".format(i,num_graphs))
+                if i != j:
+                    geds[j,i] = geds[i,j]
+                pbar.update(1)
         with open(pickle_path, 'wb') as f:
             pickle.dump(geds, f)
     

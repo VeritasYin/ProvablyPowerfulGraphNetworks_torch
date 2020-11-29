@@ -13,7 +13,7 @@ class Trainer(object):
         self.best_val_loss = np.inf
         self.best_epoch = -1
         self.cur_epoch = 0
-        self.device = 'cuda'
+        self.device = torch.device(f'cuda:{config.gpu}' if torch.cuda.is_available() else 'cpu')
 
         self.model_wrapper = model_wrapper
         self.config = config
@@ -87,7 +87,7 @@ class Trainer(object):
             return acc_per_epoch, loss_per_epoch
         else:
             dist_per_epoch = (total_correct_labels_or_distances * self.data_loader.labels_std)/self.data_loader.train_size
-            print("\t\tEpoch-{}  loss:{:.4f} -- mean_distances:\n{}\n".format(num_epoch, loss_per_epoch, dist_per_epoch))
+            print(f"Epoch-{num_epoch} loss:{loss_per_epoch:.4f} -- mean_distances: {dist_per_epoch}")
             return dist_per_epoch, loss_per_epoch
 
     def train_step(self):
@@ -138,7 +138,7 @@ class Trainer(object):
         val_loss = total_loss/self.data_loader.val_size
         if self.is_QM9 or self.is_SimGNN:
             val_dists = (total_correct_or_dist*self.data_loader.labels_std)/self.data_loader.val_size
-            print("\t\tVal-{}  loss:{:.4f} -- mean_distances:\n{}\n".format(epoch, val_loss, val_dists))
+            print(f"Val-{epoch} loss:{val_loss:.4f} - mean_distances:{val_dists}")
 
             # save best model by validation loss to be used for test set
             if val_loss < self.best_val_loss:
@@ -185,7 +185,7 @@ class Trainer(object):
 
         test_loss = total_loss/self.data_loader.test_size
         test_dists = (total_dists*self.data_loader.labels_std) / self.data_loader.test_size
-        print("\t\tTest-{}  loss:{:.4f} -- mean_distances:\n{}\n".format(self.best_epoch, test_loss, test_dists))
+        print(f"Test-{self.best_epoch}  loss:{test_loss:.4f} - mean_distances: {test_dists}")
 
         tt.close()
 

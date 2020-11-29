@@ -1,6 +1,6 @@
 {
-  "num_epochs": 20,
-  "gpu": "5",
+  "num_epochs": 100,
+  "gpu": "1",
   "exp_name": "SimGNN",
   "val_exist": true,
   "target_param": false,

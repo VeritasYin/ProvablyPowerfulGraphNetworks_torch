@@ -34,8 +34,8 @@ def main():
     except Exception as e:
         print("missing or invalid arguments %s" % e)
         exit(0)
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+    
+    device = torch.device(f'cuda:{config.gpu}' if torch.cuda.is_available() else 'cpu')
 
     torch.manual_seed(100)
     np.random.seed(100)

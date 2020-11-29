@@ -42,9 +42,9 @@ class BaseModel(nn.Module):
         # SimGNN layers (graph rep -> ged)
         if self.is_SimGNN:
             self.SimGNN_layers = nn.ModuleList()
-            self.SimGNN_layers.append(modules.FullyConnected(self.config.num_classes*2, 512)) 
-            self.SimGNN_layers.append(modules.FullyConnected(512, 256)) 
-            self.SimGNN_layers.append(modules.FullyConnected(256, 1, activation_fn=None)) 
+            self.SimGNN_layers.append(modules.FullyConnected(self.config.num_classes*2, 256)) 
+            self.SimGNN_layers.append(modules.FullyConnected(256, 128)) 
+            self.SimGNN_layers.append(modules.FullyConnected(128, 1, activation_fn=None)) 
 
     def forward(self, input):
         x = input
@@ -72,7 +72,7 @@ class BaseModel(nn.Module):
             d = scores.shape[1]
             input1 = scores.expand(n,n,d)
             input2 = torch.transpose(input1,0,1)
-            x = torch.reshape( torch.cat((input1,input2), 2) , (n*n,2*d))
+            x = torch.reshape(torch.cat((input1,input2), 2) , (n*n,2*d))
             for fc in self.SimGNN_layers:
                 x = fc(x)
             scores = torch.reshape(x, (n,n))

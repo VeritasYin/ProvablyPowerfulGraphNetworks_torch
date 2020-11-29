@@ -3,12 +3,14 @@ import models
 import torch
 import torch.nn.functional as F
 from models.base_model import BaseModel
+import pdb
 
 
 class ModelWrapper(object):
     def __init__(self, config, data):
         self.config = config
         self.data = data
+        print(config)
         self.model = BaseModel(config).cuda()
 
     # save function that saves the checkpoint in the path defined in the config file
@@ -44,9 +46,10 @@ class ModelWrapper(object):
         :return: tuple of (loss tensor, dists numpy array) for QM9
                           (loss tensor, number of correct predictions) for classification graphs
         """
+        loss_fn = torch.nn.MSELoss()
         if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
+            loss = loss_fn(scores, labels.float())
             differences = (scores-labels.float()).abs()
-            loss = differences.sum()
             dists = differences.detach().cpu().numpy().sum()
             return loss, dists
         elif self.config.dataset_name == 'QM9':
