@@ -42,7 +42,7 @@ def load_dataset(ds_name):
     graphs = np.array(graphs)
     for i in range(graphs.shape[0]):
         graphs[i] = np.transpose(graphs[i], [2,0,1])
-        
+
     return graphs, np.array(labels)
     
 def load_dataset_SimGNN(ds_name):
@@ -66,7 +66,7 @@ def load_dataset_SimGNN(ds_name):
                 geds[i,j] = next(nx.optimize_graph_edit_distance( graphs[i], graphs[j], node_subst_cost=is_diff, edge_subst_cost=is_diff ))
                 if i != j:
                     geds[j,i] = geds[i,j]
-                pbar.update(1)
+                #pbar.update(1)
         with open(pickle_path, 'wb') as f:
             pickle.dump(geds, f)
     
@@ -95,20 +95,23 @@ def load_dataset_SimGNN(ds_name):
     
 def iterate_get_graphs(dir):
     graphs = []
+    gids = []
     for file in glob(dir + '/*.gexf'):
         gid = int(basename(file).split('.')[0])
         g = nx.read_gexf(file)
         # g.graph['gid'] = gid
         graphs.append(g)
+        gids.append(gid)
         if not nx.is_connected(g):
             raise RuntimeError('{} not connected'.format(gid))
-    return graphs
+    graphs = np.array(graphs)
+    return graphs[np.argsort(gids)]
     
 def is_diff(att1,att2):
     """
     Cost = 1 if any attribute other than "label" is different, 0 otherwise
     """
-    return all(att1[key] == att2[key] or key == "label" for key in att1)
+    return not all(att1[key] == att2[key] or key == "label" for key in att1)
     
 def nx_to_np(G, node_att_map):
     n = G.number_of_nodes()
