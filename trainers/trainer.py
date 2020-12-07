@@ -93,6 +93,10 @@ class Trainer(object):
             acc_per_epoch = total_correct_labels_or_distances/self.data_loader.train_size
             print("\t\tEpoch-{}  loss:{:.4f} -- acc:{:.4f}\n".format(num_epoch, loss_per_epoch, acc_per_epoch))
             return acc_per_epoch, loss_per_epoch
+        elif self.is_SimGNN:
+            dist_per_epoch = (total_correct_labels_or_distances * self.data_loader.labels_std)/self.data_loader.train_size
+            print(f"Epoch-{num_epoch} loss e-3:{loss_per_epoch*1000:.4f} -- mean_distances e-3: {dist_per_epoch*1000}")
+            return dist_per_epoch, loss_per_epoch
         else:
             dist_per_epoch = (total_correct_labels_or_distances * self.data_loader.labels_std)/self.data_loader.train_size
             print(f"Epoch-{num_epoch} loss:{loss_per_epoch:.4f} -- mean_distances: {dist_per_epoch}")
@@ -156,7 +160,10 @@ class Trainer(object):
         val_loss = total_loss/self.data_loader.val_size
         if self.is_QM9 or self.is_SimGNN:
             val_dists = (total_correct_or_dist*self.data_loader.labels_std)/self.data_loader.val_size
-            print(f"Val-{epoch} loss:{val_loss:.4f} - mean_distances:{val_dists}")
+            if self.is_QM9:
+                print(f"Val-{epoch} loss:{val_loss:.4f} - mean_distances:{val_dists}")
+            else:
+                print(f"Val-{epoch} loss e-3:{val_loss*1000:.4f} - mean_distances e-3:{val_dists*1000}")
 
             # save best model by validation loss to be used for test set
             if val_loss < self.best_val_loss:
@@ -209,7 +216,10 @@ class Trainer(object):
 
         test_loss = total_loss/self.data_loader.test_size
         test_dists = (total_dists*self.data_loader.labels_std) / self.data_loader.test_size
-        print(f"Test-{self.best_epoch}  loss:{test_loss:.4f} - mean_distances: {test_dists}")
+        if self.is_SimGNN:
+            print(f"Test-{self.best_epoch}  loss e-3:{test_loss*1000:.4f} - mean_distances e-3: {test_dists*1000}")
+        else:
+            print(f"Test-{self.best_epoch}  loss:{test_loss:.4f} - mean_distances: {test_dists}")
 
         tt.close()
 

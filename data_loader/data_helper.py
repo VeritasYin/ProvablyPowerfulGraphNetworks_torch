@@ -69,6 +69,15 @@ def load_dataset_SimGNN(ds_name):
                 #pbar.update(1)
         with open(pickle_path, 'wb') as f:
             pickle.dump(geds, f)
+
+    # normalize
+    for i in tqdm(range(num_graphs)):
+        n1 = graphs[i].number_of_nodes()
+        for j in range(i):
+            n2 = graphs[j].number_of_nodes()
+            geds[i,j] /= ( (n1+n2)/2 )
+            geds[j,i] = geds[i,j]
+    geds = np.exp(-geds)
     
     # construct dict injectively mapping node attribute dicts -> integers
     node_num_att = 0
