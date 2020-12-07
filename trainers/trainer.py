@@ -68,17 +68,25 @@ class Trainer(object):
 
         total_loss = 0.
         total_correct_labels_or_distances = 0.
+        total_size = 0
 
         # Iterate over batches
         for cur_it in tt:
             # One Train step on the current batch
-            loss, correct_labels_or_distances = self.train_step()
+            if self.is_SimGNN:
+                loss, correct_labels_or_distances, batch_size = self.train_step()
+                total_size += batch_size
+            else:
+                loss, correct_labels_or_distances = self.train_step()
             # update results from train_step func
             total_loss += loss
             total_correct_labels_or_distances += correct_labels_or_distances
 
         tt.close()
         self.scheduler.step()
+
+        if self.data_loader.train_size == -1: #dummy value for SimGNN
+            self.data_loader.train_size = total_size
 
         loss_per_epoch = total_loss/self.data_loader.train_size
         if not self.is_QM9 and not self.is_SimGNN:
@@ -102,7 +110,11 @@ class Trainer(object):
         loss.backward()
         self.optimizer.step()
 
-        return loss.cpu().item(), correct_labels_or_distances
+        if self.is_SimGNN:
+            batch_size = graphs.shape[0]*(graphs.shape[0]-1);
+            return loss.cpu().item(), correct_labels_or_distances, batch_size
+        else:
+            return loss.cpu().item(), correct_labels_or_distances
 
     def validate(self, epoch):
         """
@@ -120,6 +132,7 @@ class Trainer(object):
 
         total_loss = 0.
         total_correct_or_dist = 0.
+        total_size = 0
 
         # Iterate over batches
         # for cur_it in tt:
@@ -127,6 +140,8 @@ class Trainer(object):
             # One Train step on the current batch
             graph, label = self.data_loader.next_batch()
             # label = np.expand_dims(label, 0)
+            batch_size = graph.shape[0] * (graph.shape[0]-1)
+            total_size += batch_size
             loss, correct_or_dist = self.model_wrapper.run_model_get_loss_and_results(graph, label)
 
             # update metrics returned from train_step func
@@ -134,6 +149,9 @@ class Trainer(object):
             total_correct_or_dist += correct_or_dist
 
         # tt.close()
+
+        if self.data_loader.val_size == -1:
+            self.data_loader.val_size = total_size
 
         val_loss = total_loss/self.data_loader.val_size
         if self.is_QM9 or self.is_SimGNN:
@@ -172,16 +190,22 @@ class Trainer(object):
 
         total_loss = 0.
         total_dists = 0.
+        total_size = 0
 
         # Iterate over batches
         for cur_it in tt:
             # One Train step on the current batch
             graph, label = self.data_loader.next_batch()
             # label = np.expand_dims(label, 0)
+            batch_size = graph.shape[0] * (graph.shape[0]-1)
+            total_size += batch_size
             loss, dists = self.model_wrapper.run_model_get_loss_and_results(graph, label)
             # update metrics returned from train_step func
             total_loss += loss.cpu().item()
             total_dists += dists
+
+        if self.data_loader.test_size == -1:
+            self.data_loader.test_size = total_size
 
         test_loss = total_loss/self.data_loader.test_size
         test_dists = (total_dists*self.data_loader.labels_std) / self.data_loader.test_size

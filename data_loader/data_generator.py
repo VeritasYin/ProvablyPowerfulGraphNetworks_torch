@@ -25,15 +25,6 @@ class DataGenerator:
 
         self.split_val_test_to_batches()
 
-    # because we compare every pair of graphs in each batch, the actual dataset size is a bit complicated
-    def __dataset_size_SimGNN(self, num_graphs):
-        per_full_batch = self.batch_size * (self.batch_size-1) # comparing graph to itself will always succeed
-        if num_graphs % self.batch_size == 0:
-            partial_batch = 0
-        else:
-            partial_batch = (num_graphs%self.batch_size) * ((num_graphs%self.batch_size) -1)
-        return (num_graphs//self.batch_size) * per_full_batch + partial_batch
-
     def load_SimGNN_data(self):
         graphs, labels = helper.load_dataset_SimGNN(self.config.dataset_name)
 
@@ -44,9 +35,11 @@ class DataGenerator:
         self.test_graphs, self.val_graphs, self.train_graphs = graphs[:idx], graphs[idx:2*idx], graphs[2*idx:]
         self.test_labels, self.val_labels, self.train_labels = labels[:idx,:idx], labels[idx:2*idx, idx:2*idx], labels[2*idx:, 2*idx:]
 
-        self.train_size = self.__dataset_size_SimGNN(len(self.train_graphs))
-        self.val_size = self.__dataset_size_SimGNN(len(self.val_graphs))
-        self.test_size = self.__dataset_size_SimGNN(len(self.test_graphs))
+        # dummy values; it is very difficult to calculate size at this time
+        # because batching is done separately for each graph size
+        self.train_size = -1
+        self.val_size = -1
+        self.test_size = -1
 
         self.labels_std = 1 # dummy value; do we actually want to standardize?
 

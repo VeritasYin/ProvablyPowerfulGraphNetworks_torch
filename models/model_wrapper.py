@@ -46,9 +46,11 @@ class ModelWrapper(object):
         :return: tuple of (loss tensor, dists numpy array) for QM9
                           (loss tensor, number of correct predictions) for classification graphs
         """
-        loss_fn = torch.nn.MSELoss()
+        #loss_fn = torch.nn.MSELoss()
         if self.config.dataset_name in ["AIDS700nef", "LINUX"]:
-            loss = loss_fn(scores, labels.float())
+            #loss = loss_fn(scores, labels.float())
+            square_error = torch.pow(scores-labels.float(), 2)
+            loss = square_error.sum() - square_error.trace() #ignore comparing graph to itself
             differences = (scores-labels.float()).abs()
             dists = differences.detach().cpu().numpy().sum()
             return loss, dists
