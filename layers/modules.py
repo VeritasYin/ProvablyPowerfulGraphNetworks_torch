@@ -84,6 +84,33 @@ class FullyConnected(nn.Module):
             out = self.activation(out)
 
         return out
+        
+
+class NTN(nn.Module):
+    def __init__(self, in_features, out_features, activation_fn=nn.functional.relu):
+        super().__init__()
+
+        self.bilinear = nn.Bilinear(in_features, in_features, out_features, bias=False)
+        _init_weights(self.bilinear)
+        self.fc = nn.Linear(in_features*2, out_features)
+        _init_weights(self.fc)
+
+        self.activation = activation_fn
+
+    def forward(self, input):
+        n = input.shape[0]
+        d = input.shape[1]
+        input1 = input.expand(n,n,d)
+        input2 = torch.transpose(input1,0,1)
+        fc_in = torch.reshape(torch.cat((input1,input2), 2) , (n*n,2*d))
+        bi_in1 = torch.reshape(input1, (n*n,d))
+        bi_in2 = torch.reshape(input2, (n*n,d))
+        
+        out = self.bilinear(bi_in1, bi_in2) + self.fc(fc_in)
+        if self.activation is not None:
+            out = self.activation(out)
+
+        return out
 
 
 def _init_weights(layer):
