@@ -10,7 +10,7 @@ class DataGenerator:
         self.batch_size = self.config.hyperparams.batch_size
         self.is_SimGNN = self.config.dataset_name in ['AIDS700nef', 'LINUX']
         self.is_qm9 = self.config.dataset_name == 'QM9'
-        self.labels_dtype = torch.float32 if self.is_qm9 else torch.long
+        self.labels_dtype = torch.float32 if self.is_qm9 or self.is_SimGNN else torch.long
 
         self.load_data()
 
@@ -28,7 +28,7 @@ class DataGenerator:
     def load_SimGNN_data(self):
         graphs, labels = helper.load_dataset_SimGNN(self.config.dataset_name)
 
-        avg_ged = np.sum(labels) // (labels.shape[0]*(labels.shape[0]-1))
+        avg_ged = np.sum(labels) / (labels.shape[0]*(labels.shape[0]-1))
         print("ged avg: {}".format(avg_ged))
 
         idx = len(graphs)//5
