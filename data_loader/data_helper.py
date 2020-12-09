@@ -63,12 +63,18 @@ def load_dataset_SimGNN(ds_name):
         print("Calculating GEDs ...")
         for i in tqdm(range(num_graphs)):
             for j in range(i):
-                geds[i,j] = next(nx.optimize_graph_edit_distance( graphs[i], graphs[j], node_subst_cost=is_diff, edge_subst_cost=is_diff ))
+                k = 0
+                for approx in nx.optimize_graph_edit_distance( graphs[i], graphs[j], node_subst_cost=is_diff, edge_subst_cost=is_diff ):
+                    if k == 0:
+                        geds[i,j] = approx
+                        break;
+                    k += 1
                 if i != j:
                     geds[j,i] = geds[i,j]
                 #pbar.update(1)
         with open(pickle_path, 'wb') as f:
             pickle.dump(geds, f)
+    print(geds)
 
     # normalize
     for i in tqdm(range(num_graphs)):
