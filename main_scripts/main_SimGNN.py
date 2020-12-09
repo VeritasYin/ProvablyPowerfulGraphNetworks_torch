@@ -17,10 +17,9 @@ os.chdir(project_dir)
 from data_loader.data_generator import DataGenerator
 from models.model_wrapper import ModelWrapper
 from trainers.trainer import Trainer
-from utils.config import process_config
+from utils.config import process_config, get_args
 from utils.dirs import create_dirs
 from utils import doc_utils
-from utils.utils import get_args
 
 
 def main():
@@ -29,13 +28,12 @@ def main():
 
     try:
         args = get_args()
-        config = process_config(args.config, dataset_name='LINUX')
+        config = process_config(args)
+        print(config)
 
     except Exception as e:
         print("missing or invalid arguments %s" % e)
         exit(0)
-    
-    device = torch.device(f'cuda:{config.gpu}' if torch.cuda.is_available() else 'cpu')
 
     torch.manual_seed(100)
     np.random.seed(100)

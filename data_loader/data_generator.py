@@ -11,7 +11,7 @@ class DataGenerator:
         self.is_SimGNN = self.config.dataset_name in ['AIDS700nef', 'LINUX']
         self.is_qm9 = self.config.dataset_name == 'QM9'
         self.labels_dtype = torch.float32 if self.is_qm9 or self.is_SimGNN else torch.long
-
+        self.device = torch.device(config.device if torch.cuda.is_available() else 'cpu')
         self.load_data()
 
     # load the specified dataset in the config to the data_generator instance
@@ -86,7 +86,7 @@ class DataGenerator:
 
     def next_batch(self):
         graphs, labels = next(self.iter)
-        graphs, labels = torch.cuda.FloatTensor(graphs), torch.tensor(labels, device='cuda', dtype=self.labels_dtype)
+        graphs, labels = torch.tensor(graphs, device=self.device, dtype=torch.float32), torch.tensor(labels, device=self.device, dtype=self.labels_dtype)
         return graphs, labels
 
     # initialize an iterator from the data for one training epoch

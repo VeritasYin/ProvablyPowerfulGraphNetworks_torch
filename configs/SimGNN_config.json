@@ -1,4 +1,5 @@
 {
+  "dataset_name": "LINUX",
   "num_epochs": 100,
   "gpu": "1",
   "exp_name": "SimGNN",

@@ -13,7 +13,6 @@ class Trainer(object):
         self.best_val_loss = np.inf
         self.best_epoch = -1
         self.cur_epoch = 0
-        self.device = torch.device(f'cuda:{config.gpu}' if torch.cuda.is_available() else 'cpu')
 
         self.model_wrapper = model_wrapper
         self.config = config
@@ -63,15 +62,12 @@ class Trainer(object):
         self.model_wrapper.train()
 
         # initialize tqdm
-        tt = tqdm(range(self.data_loader.num_iterations_train), total=self.data_loader.num_iterations_train,
-                  desc="Epoch-{}-".format(num_epoch))
-
         total_loss = 0.
         total_correct_labels_or_distances = 0.
         total_size = 0
 
         # Iterate over batches
-        for cur_it in tt:
+        for cur_it in range(self.data_loader.num_iterations_train):
             # One Train step on the current batch
             if self.is_SimGNN:
                 loss, correct_labels_or_distances, batch_size = self.train_step()
@@ -82,7 +78,6 @@ class Trainer(object):
             total_loss += loss
             total_correct_labels_or_distances += correct_labels_or_distances
 
-        tt.close()
         self.scheduler.step()
 
         if self.data_loader.train_size == -1: #dummy value for SimGNN
@@ -95,7 +90,7 @@ class Trainer(object):
             return acc_per_epoch, loss_per_epoch
         elif self.is_SimGNN:
             dist_per_epoch = (total_correct_labels_or_distances * self.data_loader.labels_std)/self.data_loader.train_size
-            print(f"Epoch-{num_epoch} loss e-3:{loss_per_epoch*1000:.4f} -- mean_distances e-3: {dist_per_epoch*1000}")
+            print(f"Epoch {num_epoch} train loss: {loss_per_epoch*1000:.3f} e-3 mean_distances: {dist_per_epoch*1000:.3f} e-3")
             return dist_per_epoch, loss_per_epoch
         else:
             dist_per_epoch = (total_correct_labels_or_distances * self.data_loader.labels_std)/self.data_loader.train_size
@@ -139,7 +134,6 @@ class Trainer(object):
         total_size = 0
 
         # Iterate over batches
-        # for cur_it in tt:
         for cur_it in range(self.data_loader.num_iterations_val):
             # One Train step on the current batch
             graph, label = self.data_loader.next_batch()
@@ -152,8 +146,6 @@ class Trainer(object):
             total_loss += loss.cpu().item()
             total_correct_or_dist += correct_or_dist
 
-        # tt.close()
-
         if self.data_loader.val_size == -1:
             self.data_loader.val_size = total_size
 
@@ -163,7 +155,7 @@ class Trainer(object):
             if self.is_QM9:
                 print(f"Val-{epoch} loss:{val_loss:.4f} - mean_distances:{val_dists}")
             else:
-                print(f"Val-{epoch} loss e-3:{val_loss*1000:.4f} - mean_distances e-3:{val_dists*1000}")
+                print(f"Epoch {epoch}  val  loss: {val_loss*1000:.3f} e-3 mean_distances: {val_dists * 1000:.3f} e-3")
 
             # save best model by validation loss to be used for test set
             if val_loss < self.best_val_loss:
@@ -174,7 +166,6 @@ class Trainer(object):
             return val_dists, val_loss
         else:
             val_acc = total_correct_or_dist/self.data_loader.val_size
-            # print("\t\tVal-{}  loss:{:.4f} -- acc:{:.4f}\n".format(epoch, val_loss, val_acc))
             return val_acc, val_loss
 
     def test(self, load_best_model=False):
@@ -192,15 +183,13 @@ class Trainer(object):
         self.model_wrapper.eval()
 
         # initialize tqdm
-        tt = tqdm(range(self.data_loader.num_iterations_test), total=self.data_loader.num_iterations_test,
-                  desc="Test-{}-".format(self.best_epoch))
 
         total_loss = 0.
         total_dists = 0.
         total_size = 0
 
         # Iterate over batches
-        for cur_it in tt:
+        for cur_it in range(self.data_loader.num_iterations_test):
             # One Train step on the current batch
             graph, label = self.data_loader.next_batch()
             # label = np.expand_dims(label, 0)
@@ -217,10 +206,8 @@ class Trainer(object):
         test_loss = total_loss/self.data_loader.test_size
         test_dists = (total_dists*self.data_loader.labels_std) / self.data_loader.test_size
         if self.is_SimGNN:
-            print(f"Test-{self.best_epoch}  loss e-3:{test_loss*1000:.4f} - mean_distances e-3: {test_dists*1000}")
+            print(f"Epoch {self.best_epoch}  val  loss: {test_loss * 1000:.3f} e-3 mean_distances: {test_dists * 1000:.3f} e-3")
         else:
             print(f"Test-{self.best_epoch}  loss:{test_loss:.4f} - mean_distances: {test_dists}")
-
-        tt.close()
 
         return test_dists, test_loss
