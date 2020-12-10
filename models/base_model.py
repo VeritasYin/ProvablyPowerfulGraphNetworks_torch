@@ -21,7 +21,10 @@ class BaseModel(nn.Module):
         last_layer_features = original_features_num
         self.reg_blocks = nn.ModuleList()
         for layer, next_layer_features in enumerate(block_features):
-            mlp_block = modules.RegularBlock(config, last_layer_features, next_layer_features)
+            if config.simple:
+                mlp_block = modules.MlpBlock(last_layer_features, next_layer_features, config.architecture.depth_of_mlp)
+            else:
+                mlp_block = modules.RegularBlock(config, last_layer_features, next_layer_features)
             self.reg_blocks.append(mlp_block)
             last_layer_features = next_layer_features
 
