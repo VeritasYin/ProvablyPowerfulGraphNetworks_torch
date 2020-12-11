@@ -15,7 +15,8 @@ class BaseModel(nn.Module):
         self.config = config
         self.device = torch.device(config.device if torch.cuda.is_available() else 'cpu')
         self.is_SimGNN = config.dataset_name in ['LINUX', 'AIDS700nef']
-        self.use_NTN = False
+        self.use_NTN = True
+        self.use_histogram = True
         use_new_suffix = config.architecture.new_suffix  # True or False
         block_features = config.architecture.block_features  # List of number of features in each regular block
         original_features_num = config.node_labels + 1  # Number of features of the input
@@ -47,14 +48,16 @@ class BaseModel(nn.Module):
             
         # SimGNN layers (graph rep -> ged)
         if self.is_SimGNN:
-#             self.SimGNN_NTN = modules.NTN(self.config.num_classes, 256)
-#             self.SimGNN_layers = nn.ModuleList()
-#             self.SimGNN_layers.append(modules.FullyConnected(256, 128)) 
-#             self.SimGNN_layers.append(modules.FullyConnected(128, 64)) 
-#             self.SimGNN_layers.append(modules.FullyConnected(64, 1, activation_fn=None)) 
+            if self.use_NTN:
+                self.SimGNN_NTN = modules.NTN(self.config.num_classes, 256)
+                first_layer_features = 256
+            else:
+                first_layer_features = self.config.num_classes*2
+            if self.use_histogram:
+                first_layer_features += self.bins*2
             self.SimGNN_layers = nn.ModuleList()
-            self.SimGNN_layers.append(modules.FullyConnected((self.config.num_classes+self.bins)*2, 256)) 
-            self.SimGNN_layers.append(modules.FullyConnected(256, 128)) 
+            self.SimGNN_layers.append(modules.FullyConnected(first_layer_features, 256))
+            self.SimGNN_layers.append(modules.FullyConnected(256, 128))
             self.SimGNN_layers.append(modules.FullyConnected(128, 1, activation_fn=None))
             
     def calculate_histogram(self, matf1, matf2):
@@ -92,7 +95,8 @@ class BaseModel(nn.Module):
             bs = x.shape[0]
             x_max = torch.max(x, dim=2)[0]
             x_sum = torch.sum(x, dim=2)
-            hist = self.calculate_histogram(x_max, x_sum)
+            if self.use_histogram:
+                hist = self.calculate_histogram(x_max, x_sum)
             x = layers.diag_offdiag_maxpool(x)  # NxFxMxM -> Nx2F
             for fc in self.fc_layers:
                 x = fc(x)
@@ -101,15 +105,15 @@ class BaseModel(nn.Module):
         # If SimGNN, pair up and apply anothe 3-layer MLP
         # Afterwards scores has shape (n,n)
         if self.is_SimGNN:
+            n = scores.shape[0]
             if self.use_NTN:
                 x = self.SimGNN_NTN(scores)
-                x = torch.cat((x, hist), -1)
             else:
-                n = scores.shape[0]
                 d = scores.shape[1]
                 input1 = scores.expand(n,n,d)
                 input2 = torch.transpose(input1,0,1)
                 x = torch.reshape(torch.cat((input1,input2), 2) , (n*n,2*d))
+            if self.use_histogram:
                 x = torch.cat((x, hist), -1)
             for fc in self.SimGNN_layers:
                 x = fc(x)
